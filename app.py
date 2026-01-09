@@ -1,22 +1,44 @@
 from flask import Flask, request, jsonify
-import os
+import requests
 
 app = Flask(__name__)
 
+# API gốc (x10.mx – hay bị chặn nếu gọi trực tiếp)
+OLD_API_URL = "http://abcdxyz310107.x10.mx/apifl.php"
+
 @app.route("/")
 def home():
-    return "API is running"
+    return "API proxy is running"
 
-@app.route("/apifl")
+@app.route("/apifl", methods=["GET"])
 def apifl():
     fl1 = request.args.get("fl1")
     if not fl1:
-        return jsonify({"error": "missing fl1"}), 400
+        return jsonify({
+            "status": "error",
+            "message": "missing fl1"
+        }), 400
 
-    return jsonify({
-        "status": "success",
-        "data": fl1
-    })
+    try:
+        # Gọi API cũ từ server Render (KHÔNG bị chặn)
+        r = requests.get(
+            OLD_API_URL,
+            params={"fl1": fl1},
+            headers={
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "*/*"
+            },
+            timeout=20
+        )
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+        # Trả thẳng kết quả API cũ
+        return jsonify({
+            "status": "success",
+            "data": r.text.strip()
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": "failed to call old api"
+        }), 500
