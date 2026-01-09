@@ -3,7 +3,6 @@ import requests
 
 app = Flask(__name__)
 
-# API gốc (x10.mx – hay bị chặn nếu gọi trực tiếp)
 OLD_API_URL = "http://abcdxyz310107.x10.mx/apifl.php"
 
 @app.route("/")
@@ -12,18 +11,22 @@ def home():
 
 @app.route("/apifl", methods=["GET"])
 def apifl():
-    fl1 = request.args.get("fl1")
-    if not fl1:
+    username = request.args.get("username")
+    if not username:
         return jsonify({
             "status": "error",
-            "message": "missing fl1"
+            "message": "missing username"
         }), 400
 
     try:
-        # Gọi API cũ từ server Render (KHÔNG bị chặn)
+        # GHÉP ĐÚNG FORMAT API CŨ
+        params = {
+            "fl1": f"username={username}"
+        }
+
         r = requests.get(
             OLD_API_URL,
-            params={"fl1": fl1},
+            params=params,
             headers={
                 "User-Agent": "Mozilla/5.0",
                 "Accept": "*/*"
@@ -31,13 +34,12 @@ def apifl():
             timeout=20
         )
 
-        # Trả thẳng kết quả API cũ
         return jsonify({
             "status": "success",
             "data": r.text.strip()
         }), 200
 
-    except Exception as e:
+    except Exception:
         return jsonify({
             "status": "error",
             "message": "failed to call old api"
